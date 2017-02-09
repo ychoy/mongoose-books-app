@@ -23,6 +23,16 @@ $(document).ready(function(){
     });
   });
 
+  $booksList.on('click', '.updateBtn', function() {
+    console.log('clicked update button to', '/api/books/'+$(this).attr('data-id'));
+    $.ajax({
+      method: 'UPDATE',
+      url: '/api/books/'+$(this).attr('data-id'),
+      success: updatedBookSuccess,
+      error: updatedBookError
+    });
+  });
+
   $booksList.on('click', '.deleteBtn', function() {
     console.log('clicked delete button to', '/api/books/'+$(this).attr('data-id'));
     $.ajax({
@@ -40,6 +50,7 @@ function getBookHtml(book) {
           <p>
             <b>${book.title}</b>
             by ${book.author}
+            <button type="button" name="button" class="updateBtn btn btn-success pull-right" data-id=${book._id}>Update</button>
             <button type="button" name="button" class="deleteBtn btn btn-danger pull-right" data-id=${book._id}>Delete</button>
           </p>`;
 }
@@ -79,6 +90,26 @@ function newBookSuccess(json) {
 
 function newBookError() {
   console.log('newbook error!');
+}
+
+ function updatedBookSuccess(json) {
+  var book = json;
+  console.log(json);
+  var bookId = book._id;
+  // find the book to update by its id
+  var bookToUpdate = allBooks.filter(function (book) {
+  	return book._id == bookId;
+  })[0];
+
+  // replace book to update with newly updated version (data)
+    allBooks.splice(allBooks.indexOf(bookToUpdate), 1, data);
+
+    // render all todos to view
+    render();
+ }
+
+function updatedBookError() {
+  console.log('updatedbook error!');
 }
 
 function deleteBookSuccess(json) {
