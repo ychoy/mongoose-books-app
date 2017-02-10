@@ -1,10 +1,11 @@
-console.log("Sanity Check: JS is working!");
+var template;
 var $booksList;
 var allBooks = [];
 
 $(document).ready(function(){
 
   $booksList = $('#bookTarget');
+
   $.ajax({
     method: 'GET',
     url: '/api/books',
@@ -23,18 +24,7 @@ $(document).ready(function(){
     });
   });
 
-  $booksList.on('click', '.updateBtn', function() {
-    console.log('clicked update button to', '/api/books/'+$(this).attr('data-id'));
-    $.ajax({
-      method: 'UPDATE',
-      url: '/api/books/'+$(this).attr('data-id'),
-      success: updatedBookSuccess,
-      error: updatedBookError
-    });
-  });
-
   $booksList.on('click', '.deleteBtn', function() {
-    console.log('clicked delete button to', '/api/books/'+$(this).attr('data-id'));
     $.ajax({
       method: 'DELETE',
       url: '/api/books/'+$(this).attr('data-id'),
@@ -49,8 +39,7 @@ function getBookHtml(book) {
   return `<hr>
           <p>
             <b>${book.title}</b>
-            by ${book.author}
-            <button type="button" name="button" class="updateBtn btn btn-success pull-right" data-id=${book._id}>Update</button>
+            by ${book.author.name}
             <button type="button" name="button" class="deleteBtn btn btn-danger pull-right" data-id=${book._id}>Delete</button>
           </p>`;
 }
@@ -58,7 +47,6 @@ function getBookHtml(book) {
 function getAllBooksHtml(books) {
   return books.map(getBookHtml).join("");
 }
-
 // helper function to render all posts to view
 // note: we empty and re-render the collection each time our post data changes
 function render () {
@@ -89,34 +77,13 @@ function newBookSuccess(json) {
 }
 
 function newBookError() {
-  console.log('newbook error!');
-}
 
- function updatedBookSuccess(json) {
-  var book = json;
-  console.log(json);
-  var bookId = book._id;
-  // find the book to update by its id
-  var bookToUpdate = allBooks.filter(function (book) {
-  	return book._id == bookId;
-  })[0];
-
-  // replace book to update with newly updated version (data)
-    allBooks.splice(allBooks.indexOf(bookToUpdate), 1, data);
-
-    // render all todos to view
-    render();
- }
-
-function updatedBookError() {
-  console.log('updatedbook error!');
 }
 
 function deleteBookSuccess(json) {
   var book = json;
-  console.log(json);
   var bookId = book._id;
-  console.log('delete book', bookId);
+
   // find the book with the correct ID and remove it from our allBooks array
   for(var index = 0; index < allBooks.length; index++) {
     if(allBooks[index]._id === bookId) {
@@ -128,5 +95,5 @@ function deleteBookSuccess(json) {
 }
 
 function deleteBookError() {
-  console.log('deletebook error!');
+
 }

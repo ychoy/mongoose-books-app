@@ -25,7 +25,7 @@ var db = require('./models');
 ///////////////////
 
 
-var newBookUUID = 18;
+// var newBookUUID = 18;
 
 ////////////////////
 //  ROUTES
@@ -37,70 +37,97 @@ app.get('/', function (req, res) {
   res.sendFile('views/index.html' , { root : __dirname});
 });
 
+// get all books
 app.get('/api/books', function (req, res) {
-  // send all books as JSON response
-  db.Book.find({},function(err, books){
-    if (err) {
-      return console.log("index error: " + err);
-    }
-    res.json(books);
-
-  });
+    // send all books as JSON response
+    db.Book.find()
+      // populate fills in the author id with all the author data
+      .populate('author')
+      .exec(function(err, books){
+        if (err) {
+					status(500).send(err);
+					return;
+				}
+        res.json(books);
+      });
 });
 
-
-// get one book
-app.get('/api/books/:id', function show(req, res) {
-  // find one book by its id
-	var bookId = req.params.id;
-
-	db.Book.findOne({_id: bookId}, function(err,foundBook){
-  	if (err) {
-    	return console.log("show error:" + err);
-		} else {
-			res.json(foundBook);
-		}
-	})
-});
-
- /* express
-  console.log('books show', req.params);
-  for(var i=0; i < books.length; i++) {
-    if (books[i]._id === req.params.id) {
-      res.json(books[i]);
-      break; // we found the right book, we can stop searching
-    }
-  }
-  */
-/*
 // create new book
 app.post('/api/books', function (req, res) {
-  // create new book with form data (`req.body`)
-  console.log('books create', req.body);
-  var newBook = req.body;
-  newBook._id = newBookUUID++;
-  books.push(newBook);
-  res.json(newBook);
+    // create new book with form data (`req.body`)
+    var newBook = new db.Book({
+      title: req.body.title,
+      image: req.body.image,
+      releaseDate: req.body.releaseDate,
+    });
+
+
+   db.Author.find({name: req.body.author}, function(err, author){
+      // if the author exists then add author to a book
+			if (author.length !== 0) {
+      	newBook.author = author;
+				newBook.save(function(err,book){
+        	if (err) {return console.log("error:" + err);}
+						console.log("new book:" + book.title);
+						res.json(book);
+					})
+			} else {   //create a new book. add a new author to the database
+				var newAuthor = new db.Author({   //add new author to DB
+					name: req.body.author,
+					alive: true,
+				});
+				newAuthor.save(function(err, author){  //save new author
+        	console.log("new author:" + author);
+					newBook.author = author;
+
+      // add newBook to database
+     			newBook.save(function(err, book){  //save the book with the author attribute
+        		if (err) {
+          		return console.log("create error: " + err);
+        		}
+        		console.log("created ", book.title);
+        		res.json(book);    // send the book to the view
+      		});
+				});
+			}
+   });
+
+});
+
+app.get('/api/books/:id', function (req, res) {
+  // find one book by its id
+  db.Book.findById(req.params.id)
+    // populate the author
+    .populate('author')
+    .exec(function(err, book){
+      if (err) {
+        res.status(500).send(err);
+        return;
+      }
+      res.json(book);
+    });
+
+});
+/*
+app.put("/api/books/:_id", function bicycleUpdate(req, res){
+  var bookId = req.params._id;
+  var bookData = req.body; // security concern to handoff without checking what it is
+
+  // http://mongoosejs.com/docs/api.html#model_Model.findOneAndUpdate
+  db.Book.findOneAndUpdate(
+		// populate the author
+    .populate('author')
+		.exec({_id: bookId}, bookData, {new: true}, function(err, updatedBook){
+      if (err) {
+			 res.status(500).send(err);
+			 return;
+			}
+      res.send(updatedBook);
+    });
 });
 */
-
-/* CREATE NEW BOOK */
-app.post('/api/books', function create(req, res) {
-  // create new book with form data (`req.body`)
-  var newBook = new db.Book(req.body);
-
-  // save new book in db
-  newBook.save(function(err, savedBook) {
-    if (err) {
-      return console.log("error:" + err);
-    } else {
-      res.json(savedBook);
-    }
-  });
-});
-
-/* UPDATE BOOK */
-app.put('/api/books/:id', function(req,res){
+/*
+app.update('/api/books/:id', function(req,res){
 // get book id from url params (`req.params`)
   var bookId = req.params.id;
   // find the index of the book we want to remove
@@ -128,32 +155,6 @@ app.put('/api/books/:id', function(req,res){
 
 });
 
-/*
-  var updateBookIndex = books.findIndex(function(element, index) {
-    return (element._id === parseInt(req.params.id)); //params are strings
-  });
-  console.log('updating book with index', deleteBookIndex);
-  var bookToUpdate = books[deleteBookIndex];
-  books.splice(updateBookIndex, 1, req.params);
-  res.json(req.params);
-});
-  */
-
-/*
-/* delete book
-app.delete('/api/books/:id', function (req, res) {
-  // get book id from url params (`req.params`)
-  console.log('books delete', req.params);
-  var bookId = req.params.id;
-  // find the index of the book we want to remove
-  var deleteBookIndex = books.findIndex(function(element, index) {
-    return (element._id === parseInt(req.params.id)); //params are strings
-  });
-  console.log('deleting book with index', deleteBookIndex);
-  var bookToDelete = books[deleteBookIndex];
-  books.splice(deleteBookIndex, 1);
-  res.json(bookToDelete);
-});
 */
 
 /* DELETE BOOK */
@@ -162,15 +163,9 @@ app.delete('/api/books/:id', function destroy(req, res) {
   var bookId = req.params.id;
   // find book in db by id and remove
   db.Book.findOneAndRemove({ _id: bookId }, function (err, deletedBook) {
-    if (err) {
-      return console.log("error:" + err);
-			//res.status(500).json({ error: err.message });
-    } else {
-      res.json(deletedBook);
-    }
+    res.json(deletedBook);
   });
 });
-
 
 /* SERVER */
 
